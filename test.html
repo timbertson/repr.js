@@ -1,0 +1,20 @@
+<script src="./repr.js"></script>
+
+<script>
+function Foo() {
+	this.x = "123";
+}
+Foo.prototype.fun2 = function() {};
+
+f = new Foo();
+f.complex = {a: 123, b:456};
+f.fun = function() { };
+
+console.log(Object.getPrototypeOf(f).constructor.name);
+console.log(f + " < -- toString()");
+console.log(str(f) + " < -- str(f)");
+console.log(repr(f) + " < -- repr(f)");
+console.log(Foo + " < -- Foo");
+console.log(repr(Foo) + " < -- repr(Foo)");
+console.log(str(Foo) + " < -- str(Foo)");
+</script>

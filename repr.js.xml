@@ -1,0 +1,126 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type='text/xsl' href='interface.xsl'?>
+<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface" uri="http://gfxmonk.net/dist/0install/repr.js.xml">
+	<name>repr.js</name>
+	<summary>repr.js.xml</summary>
+	<description>
+# repr.js
+
+Sick of 99% of objects in your runtime being represented as `[object Object]`? I sure am. `repr` takes a leaf out of python's book, and gives some identity to your objects so you can tell what they are without jumping through hoops.
+
+It adds two global methods:
+
+ - `str(obj)`: print out a summary of `obj`
+ - `repr(obj)`: print out a more detailed representation of `obj` (similar to `inspect()` in ruby, and obviously `repr` in python)
+
+It also overrides `Object.toString()` to use `str`, because that way you'll suddenly get useful information throughout your app in code that you don't necessarily control - in error messages, exceptions, and whenever you concatenate strings together. Note that you should never rely on the format of this (or any) `toString()` behaviour unless you specifically override it - the default implementation of `Object.toString()` is purely for informational purposes.
+
+Here's some examples:
+
+    function Foo() {
+      this.x = "123";
+    }
+    var f = new Foo();
+    f.complex = {a: 123, b:456};
+    f.fun = function() { };
+
+
+    &gt;&gt;&gt; str(null)
+    (null)
+    &gt;&gt;&gt; str(undefined)
+    (undefined)
+    &gt;&gt;&gt; str([1,2,3])
+    [1, 2, 3]
+    &gt;&gt;&gt; str({})
+    {}
+    &gt;&gt;&gt; repr({a:"b"})
+    {"a": "b"}
+    &gt;&gt;&gt; str(f)
+    &lt;# object Foo&gt;
+    &gt;&gt;&gt; repr(f)
+    &lt;# Foo; x: 123, complex: {"a":123,"b":456}, fun: (anonymous function)&gt;
+    &gt;&gt;&gt; repr(Foo)
+    function Foo() {
+      this.x = "123";
+    }
+    &gt;&gt;&gt; str(Foo)
+    (function Foo)
+    &gt;&gt;&gt; str([1,f,3])
+    [1, &lt;# object Foo&gt;, 3]
+    &gt;&gt;&gt; repr([1,f,3])
+    [1, &lt;# Foo; x: 123, complex: {"a":123,"b":456}, fun: (anonymous function)&gt;, 3]
+    &gt;&gt;&gt; repr("foo\" bar")
+    "foo\" bar"
+
+
+The code ends up dealing with a lot of edge cases, because javascript's type system is somewhat laden with traps. So please report any issues you find, and I'll endeavor to fix them as they come up.
+
+## Usage:
+
+In the browser, you need only load it with a `&lt;script&gt;` tag. In node.js, you must `require()` it. You can either use the returned module's `repr` and `str` functions individually, or call the module's `install` method passing in the `global` object in order to install these same functions into the global scope.
+	</description>
+	<homepage>https://github.com/gfxmonk/repr.js</homepage>
+	<rich-description xmlns="http://gfxmonk.net/dist/0install">
+		<div xmlns="http://www.w3.org/1999/xhtml">
+			<h1 id="repr.js">repr.js</h1>
+			<p>Sick of 99% of objects in your runtime being represented as <code>[object Object]</code>? I sure am. <code>repr</code> takes a leaf out of python's book, and gives some identity to your objects so you can tell what they are without jumping through hoops.</p>
+			<p>It adds two global methods:</p>
+			<ul>
+				<li><code>str(obj)</code>: print out a summary of <code>obj</code></li>
+				<li><code>repr(obj)</code>: print out a more detailed representation of <code>obj</code> (similar to <code>inspect()</code> in ruby, and obviously <code>repr</code> in python)</li>
+			</ul>
+			<p>It also overrides <code>Object.toString()</code> to use <code>str</code>, because that way you'll suddenly get useful information throughout your app in code that you don't necessarily control - in error messages, exceptions, and whenever you concatenate strings together. Note that you should never rely on the format of this (or any) <code>toString()</code> behaviour unless you specifically override it - the default implementation of <code>Object.toString()</code> is purely for informational purposes.</p>
+			<p>Here's some examples:</p>
+			<pre>
+				<code>function Foo() {
+  this.x = "123";
+}
+var f = new Foo();
+f.complex = {a: 123, b:456};
+f.fun = function() { };
+
+
+&gt;&gt;&gt; str(null)
+(null)
+&gt;&gt;&gt; str(undefined)
+(undefined)
+&gt;&gt;&gt; str([1,2,3])
+[1, 2, 3]
+&gt;&gt;&gt; str({})
+{}
+&gt;&gt;&gt; repr({a:"b"})
+{"a": "b"}
+&gt;&gt;&gt; str(f)
+&lt;# object Foo&gt;
+&gt;&gt;&gt; repr(f)
+&lt;# Foo; x: 123, complex: {"a":123,"b":456}, fun: (anonymous function)&gt;
+&gt;&gt;&gt; repr(Foo)
+function Foo() {
+  this.x = "123";
+}
+&gt;&gt;&gt; str(Foo)
+(function Foo)
+&gt;&gt;&gt; str([1,f,3])
+[1, &lt;# object Foo&gt;, 3]
+&gt;&gt;&gt; repr([1,f,3])
+[1, &lt;# Foo; x: 123, complex: {"a":123,"b":456}, fun: (anonymous function)&gt;, 3]
+&gt;&gt;&gt; repr("foo\" bar")
+"foo\" bar"
+</code>
+			</pre>
+			<p>The code ends up dealing with a lot of edge cases, because javascript's type system is somewhat laden with traps. So please report any issues you find, and I'll endeavor to fix them as they come up.</p>
+			<h2 id="usage">Usage:</h2>
+			<p>In the browser, you need only load it with a <code>&lt;script&gt;</code> tag. In node.js, you must <code>require()</code> it. You can either use the returned module's <code>repr</code> and <code>str</code> functions individually, or call the module's <code>install</code> method passing in the <code>global</code> object in order to install these same functions into the global scope.</p>
+		</div>
+	</rich-description>
+	<group>
+		<command name="run">
+			<runner interface="http://gfxmonk.net/dist/0install/node.js.xml"/>
+		</command>
+		<environment insert="" mode="prepend" name="NODE_PATH"/>
+		<implementation id="sha1new=1c9afe8b28a8220413dfdd2918d1201680528b07" released="2011-10-16" version="0.1">
+			<manifest-digest sha256="b82a16302619d115f0c458081cc708387da19897b073083a7519d9f6e9c60fe8"/>
+			<archive href="http://gfxmonk.net/dist/0install/repr.js/repr.js-0.1.tgz" size="1195"/>
+		</implementation>
+	</group>
+</interface>
