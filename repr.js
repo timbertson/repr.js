@@ -1,12 +1,5 @@
 (function() {
 	var global = this;
-	var root;
-	if(typeof(exports) == 'undefined') {
-		root = global.Repr = {};
-	} else {
-		root = exports;
-	}
-	var originalToString = Object.toString;
 	var getProto = null;
 	var getName = null;
 
@@ -19,7 +12,6 @@
 		getProto = function(o) { return o.__proto__; }
 	}
 
-	root.getPrototypeOf = getProto;
 	if(getProto !== null) {
 		getName = function(o, def) {
 			var p = getProto(o);
@@ -29,111 +21,126 @@
 			return def;
 		};
 
-		Object.prototype.toString = function() {
-			var json = jsonifyPureObject(this);
-			if(json != undefined) return json;
-			var name = getName(this, null);
-			if(name == null) {
-				try {
-					return originalToString.call(this);
-				} catch(e) {
-					// what the hell? I give up...
-					return "[Object object]";
-				}
-			}
-			return "<# object " + name + ">";
-		}
 	} else {
 		getName = function(o, def) {
 			return def;
 		}
 	};
 
-	function jsonifyPureObject(obj, proto) {
-		var proto = obj || getProto(obj);
-		if(proto && proto.constructor === Object) {
-			try {
-				return JSON.stringify(obj);
-			} catch(e) { /* ugh. */ }
-		}
-	}
+	function isPureObject(obj) {
+		var proto = getProto(obj);
+		return (proto && proto.constructor === Object);
+	};
 
-	Object.prototype.repr = function() {
-		var thisProto = getProto(this);
-		if(thisProto === undefined) {
-			return this.valueOf();
-		}
-		var json = jsonifyPureObject(this, thisProto);
-		if(json != undefined) return json;
-		var attrs = "";
-		for(var k in this) {
-			if(!this.hasOwnProperty(k)) continue;
-			var val = this[k];
-			var desc=root.str(val);
-			if(attrs) {
-				attrs += ", ";
+	var breakCycles = function() {
+		var seen = [];
+		return function(subject) {
+			if(typeof(subject) === 'object') {
+				if (seen.indexOf(subject) !== -1) {
+					return true;
+				}
+				seen.push(subject);
 			}
-			attrs += k + ": " + desc;
+			return false;
 		}
-		if(attrs.length === 0) {
-			return root.str(this);
-		}
-		return "<# " + getName(this, this.valueOf()) + "; " + attrs + ">";
-	}
+	};
 
-	Function.prototype.repr = function() { return this + ""; }
 	var summarizeFunction = function(f) {
 		var name;
 		if(f.hasOwnProperty('name')) {
 			name = f.name;
 		}
 		if(!name) {
-			return "(anonymous function)";
+			return "<# anonymous function>";
 		}
-		return "(function " + name + ")";
+		return "<# function " + name + ">";
 	};
 
-	root.str = function(o) {
-		if(o === undefined) { return '(undefined)'; }
-		if(o === null) { return '(null)'; }
-		if(o instanceof Function) { return summarizeFunction(o); };
-		if(o.toString !== undefined) {
-			return o.toString()
+	var _repr = function(o, cycle) {
+		if(o === null) return 'null';
+		if(o === undefined) return 'undefined';
+		if(!o instanceof Object) {
+			// use builtin conversion:
+			return '' + o;
 		} else {
-			return o;
-		}
-	};
-
-	root.repr = function(o) {
-		if(o instanceof String || typeof(o) == 'string') { // javascript makes me sad
-			return '"' + o.replace(/\\/, '\\\\').replace(/"/, '\\"') + '"';
-		}
-		if(!(o instanceof Object)) {
-			return o + '';
-		}
-		return o.repr();
-	};
-
-	var arrayToString = function(fn) {
-		return function() {
-			var elems = "";
-			for(var i=0; i<this.length; i++) {
-				if(elems) {
-					elems += ", ";
+			if (cycle(o)) return '< circular ... >';
+			if(o === null) return 'null';
+			if(o instanceof String || typeof(o) == 'string') { // javascript makes me sad
+				try {
+					return JSON.stringify(o);
+				} catch(e) {
+					return '"' + o.replace(/\\/, '\\\\').replace(/"/, '\\"') + '"';
 				}
-				elems += fn(this[i]);
 			}
-			return "[" + elems + "]";
-		};
+
+			if(Array.isArray(o)) {
+				var elems = "";
+				for(var i=0; i<o.length; i++) {
+					if(elems) {
+						elems += ", ";
+					}
+					elems += _repr(o[i], cycle);
+				}
+				return "[" + elems + "]";
+			}
+
+			if(typeof(o) === 'function') {
+				return summarizeFunction(o);
+			}
+
+			// ok, must just be an Object
+			var objProto = getProto(o);
+			if(objProto === undefined) {
+				return o.valueOf() + '';
+			}
+
+			var attrs = "";
+			for(var k in o) {
+				if(!o.hasOwnProperty(k)) continue;
+				var val = o[k];
+				var desc=_repr(val, cycle);
+				if(attrs) {
+					attrs += ", ";
+				}
+				attrs += _repr(k, cycle) + ": " + desc;
+			}
+			if(isPureObject(o)) {
+				return "{" + attrs + "}";
+			}
+			var content;
+			if(attrs.length > 0) {
+				attrs = "; " + attrs;
+			}
+			return "<# object " + getName(o, o.valueOf()) + attrs + ">";
+		}
 	};
-	Array.prototype.toString = arrayToString(root.str);
-	Array.prototype.repr = arrayToString(root.repr);
 
-	root.install = function(g) {
-		g.str = root.str;
-		g.repr = root.repr;
+	var repr = function(o) {
+		return _repr(o, breakCycles());
 	};
 
-	root.install(global);
+	repr.install = function(g, proto) {
+		if(arguments.length == 0) {
+			g = global;
+			proto = Object.prototype;
+		}
+		if(g) {
+			g.repr = repr;
+		}
+		if(proto) {
+			proto.toString = function() {
+				return _repr(this, breakCycles());
+			};
+		}
+		return repr;
+	};
 
+	repr.repr = repr; // backwards compat with require('repr').repr;
+
+	if(typeof(module) == 'undefined') {
+		// auto-install in browser
+		repr.install(global);
+	} else {
+		module.exports = repr;
+	}
 })();
