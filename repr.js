@@ -94,7 +94,7 @@
 				try {
 					return JSON.stringify(o);
 				} catch(e) {
-					return '"' + o.replace(/\\/, '\\\\').replace(/"/, '\\"') + '"';
+					return '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
 				}
 			}
 
