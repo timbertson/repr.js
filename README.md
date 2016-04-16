@@ -1,3 +1,5 @@
+<img src="http://gfxmonk.net/dist/status/project/repr.js.png">
+
 # repr.js
 
 Sick of 99% of objects in your runtime being represented as `[object Object]`? I sure am. `repr` takes a leaf out of python's book, and gives some identity to your objects so you can tell what they are without jumping through hoops.
